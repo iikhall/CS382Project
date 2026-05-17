@@ -41,39 +41,6 @@ $(function () {
     });
   });
 
-  /* ---- Save snapshot ---- */
-  $('#saveSnapBtn').on('click', function () {
-    var $btn = $(this).prop('disabled', true);
-    $.post('api/snapshot_save.php', { date: $('#snapDate').val() })
-      .done(function (res) {
-        if (res && res.ok) {
-          var s = res.snapshot;
-          $('#snapsEmpty').remove();
-          var html =
-            '<li class="snap-item" data-id="' + s.id + '">' +
-            '<span class="week-badge">' + s.week + '</span>' +
-            '<div class="snap-meta"><strong>Week ' + s.week + '</strong>' +
-            '<span class="subtle">' + s.snapshot_date + ' · by ' +
-            $('<i>').text(s.saved_by_name || 'Admin').html() + '</span></div>' +
-            '<div class="snap-actions">' +
-            '<button type="button" class="btn btn-secondary snap-view" data-id="' + s.id + '">View</button>' +
-            '<a class="btn btn-secondary" href="api/snapshot_view.php?id=' + s.id + '&download=1">Download</a>' +
-            '<button type="button" class="btn btn-danger snap-delete" data-id="' + s.id + '">Delete</button>' +
-            '</div></li>';
-          $('#snapList').prepend(html);
-          $('#clearSnapsBtn').prop('hidden', false);
-          toast('Week saved to archive ✓');
-        } else {
-          toast((res && res.error) || 'Could not save snapshot.', true);
-        }
-        $btn.prop('disabled', false);
-      })
-      .fail(function (xhr) {
-        toast((xhr.responseJSON && xhr.responseJSON.error) || 'Could not save snapshot.', true);
-        $btn.prop('disabled', false);
-      });
-  });
-
   /* ---- View snapshot ---- */
   var $viewModal = $('#viewModal');
   function closeView() { $viewModal.removeClass('is-open'); }

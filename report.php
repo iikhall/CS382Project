@@ -6,7 +6,9 @@ require_once __DIR__ . '/includes/auth_check.php';
 
 require_login();
 
-$school    = Stat::meta($db, '_school_name', 'School Dashboard');
+$school    = Stat::meta($db, '_school_name', 'Smart School Dashboard');
+$principal = Stat::meta($db, '_principal_name', 'Admin');
+$vice      = Stat::meta($db, '_vice_principal_name', 'Deputy');
 $me        = User::current();
 $generated = date('Y-m-d H:i');
 $week      = ClassModel::currentWeek();
@@ -26,10 +28,97 @@ if ($single !== null && $grades !== null
     exit;
 }
 
+// "Generate PDF" navigates here with ?print=1 — save the snapshot to
+// the Weekly Archive server-side (guaranteed, no AJAX), then the page
+// auto-opens the print dialog.
+$autoPrint = (($_GET['print'] ?? '') === '1');
+if ($autoPrint) {
+    Snapshot::save($db, date('Y-m-d'), User::current() ?? []);
+}
+
+// Ranking section: admin -> every class; supervisor -> only the
+// class(es) in the grade(s) they are assigned to.
+$rankWhere  = '';
+$rankParams = [];
+if ($grades !== null) {
+    if ($grades === []) {
+        $rankWhere = ' WHERE 1 = 0';
+    } else {
+        $rankWhere = ' WHERE c.grade IN ('
+            . implode(',', array_fill(0, count($grades), '?')) . ')';
+        $rankParams = array_values($grades);
+    }
+}
+$rankedAll = $db->query(
+    'SELECT c.name, c.grade,
+            c.order_score, c.cleanliness_score, c.behavior_score,
+            (c.order_score + c.cleanliness_score + c.behavior_score) AS total_score,
+            COUNT(s.id) AS star_count,
+            u.display_name AS supervisor_name
+     FROM classes c
+     LEFT JOIN stars s ON s.class_id = c.id
+     LEFT JOIN grade_supervisors g ON g.grade = c.grade
+     LEFT JOIN users u ON u.id = g.supervisor_user_id'
+    . $rankWhere .
+    ' GROUP BY c.id
+     ORDER BY total_score DESC, star_count DESC, c.sort_order',
+    $rankParams
+)->fetchAll();
+$rankScopeLabel = $grades === null
+    ? 'All Classes'
+    : ($grades ? implode(', ', $grades) : 'No Grade Assigned');
+$attendanceRows = Attendance::months($db);
+
 $pageTitle   = 'Reports';
 $activeNav   = 'reports';
 $pageScripts = [base_url('assets/js/report.js')];
 require __DIR__ . '/includes/header.php';
+?>
+
+<?php
+// Reusable renderers (defined once, used for any report variant).
+$renderRanking = function (array $rows, string $scope): void { ?>
+  <h2 class="report-section-title">Class Scores &amp; Ranking
+    (<?= htmlspecialchars($scope) ?>)</h2>
+  <table class="report-table">
+    <thead><tr>
+      <th>#</th><th>Class</th><th>Grade</th><th>Discipline</th><th>Clean.</th>
+      <th>Behav.</th><th>Total</th><th>Stars</th><th>Supervisor</th>
+    </tr></thead>
+    <tbody>
+      <?php if (!$rows): ?>
+        <tr><td colspan="9">No classes.</td></tr>
+      <?php else: $rank = 1; foreach ($rows as $r): ?>
+        <tr>
+          <td><?= $rank++ ?></td>
+          <td><?= htmlspecialchars($r['name']) ?></td>
+          <td><?= htmlspecialchars($r['grade']) ?></td>
+          <td><?= (int) $r['order_score'] ?></td>
+          <td><?= (int) $r['cleanliness_score'] ?></td>
+          <td><?= (int) $r['behavior_score'] ?></td>
+          <td><strong><?= (int) $r['total_score'] ?></strong> / 30</td>
+          <td><?= (int) $r['star_count'] ?></td>
+          <td><?= htmlspecialchars($r['supervisor_name'] ?? '' ?: '—') ?></td>
+        </tr>
+      <?php endforeach; endif; ?>
+    </tbody>
+  </table>
+<?php };
+
+$renderAttendance = function (array $months): void { ?>
+  <h2 class="report-section-title">Disciplined Attendance Rate (Academic Year)</h2>
+  <table class="report-table">
+    <thead><tr><th>Month</th><th>Attendance Rate</th></tr></thead>
+    <tbody>
+      <?php foreach ($months as $m): $v = (int) $m['value']; ?>
+        <tr>
+          <td><?= htmlspecialchars($m['month']) ?></td>
+          <td><?= $v === 0 ? '—' : $v . '%' ?></td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+<?php };
 ?>
 
 <div class="report-actions flex-between">
@@ -38,12 +127,19 @@ require __DIR__ . '/includes/header.php';
     <p class="subtle">Generate a printable PDF (use your browser's “Save as PDF”).</p>
   </div>
   <div class="snap-actions">
-    <?php if ($single): ?>
+    <?php if ($single && User::isAdmin()): ?>
       <a class="btn btn-secondary" href="<?= htmlspecialchars(base_url('report.php')) ?>">School Report</a>
     <?php endif; ?>
-    <button type="button" id="printBtn" class="btn btn-primary">Generate PDF</button>
+    <?php
+      $genUrl = base_url('report.php') . '?print=1' . ($single ? '&id=' . (int) $id : '');
+    ?>
+    <a class="btn btn-primary" id="printBtn"
+       href="<?= htmlspecialchars($genUrl) ?>">Generate PDF</a>
   </div>
 </div>
+<?php if ($autoPrint): ?>
+  <span id="autoPrint" hidden></span>
+<?php endif; ?>
 
 <div class="report-doc card">
 
@@ -65,11 +161,13 @@ require __DIR__ . '/includes/header.php';
     (<?= htmlspecialchars($single['grade']) ?>, Section <?= (int) $single['section'] ?>)
     &middot; Week <?= $week ?> &middot; Generated <?= htmlspecialchars($generated) ?>
     by <?= htmlspecialchars($me['display_name'] ?? '') ?>
+    <br>Principal: <?= htmlspecialchars((string) $principal) ?>
+    &middot; Vice-Principal: <?= htmlspecialchars((string) $vice) ?>
   </p>
 
   <h2 class="report-section-title">Discipline Evaluation</h2>
   <table class="report-table">
-    <tr><th>Order</th><td><?= (int) $single['order_score'] ?> / 10</td></tr>
+    <tr><th>Discipline</th><td><?= (int) $single['order_score'] ?> / 10</td></tr>
     <tr><th>Cleanliness</th><td><?= (int) $single['cleanliness_score'] ?> / 10</td></tr>
     <tr><th>Behavior</th><td><?= (int) $single['behavior_score'] ?> / 10</td></tr>
     <tr><th>Total</th><td><strong><?= $total ?> / 30</strong></td></tr>
@@ -119,32 +217,6 @@ require __DIR__ . '/includes/header.php';
 
 <?php else: ?>
   <?php
-    $whereG = '';
-    $paramsG = [];
-    if ($grades !== null) {
-        if ($grades === []) {
-            $whereG = ' WHERE 1 = 0';
-        } else {
-            $whereG = ' WHERE c.grade IN (' .
-                implode(',', array_fill(0, count($grades), '?')) . ')';
-            $paramsG = array_values($grades);
-        }
-    }
-    $ranked = $db->query(
-        'SELECT c.name, c.grade, c.section, c.order_score, c.cleanliness_score,
-                c.behavior_score,
-                (c.order_score + c.cleanliness_score + c.behavior_score) AS total_score,
-                COUNT(s.id) AS star_count,
-                u.display_name AS supervisor_name
-         FROM classes c
-         LEFT JOIN stars s ON s.class_id = c.id
-         LEFT JOIN grade_supervisors g ON g.grade = c.grade
-         LEFT JOIN users u ON u.id = g.supervisor_user_id'
-        . $whereG .
-        ' GROUP BY c.id
-         ORDER BY total_score DESC, star_count DESC, c.sort_order',
-        $paramsG
-    )->fetchAll();
     $reportScope = $grades === null
         ? 'School-Wide'
         : (($grades ? implode(', ', $grades) : 'No Grade Assigned'));
@@ -154,32 +226,9 @@ require __DIR__ . '/includes/header.php';
     Week <?= $week ?> &middot; Generated <?= htmlspecialchars($generated) ?>
     by <?= htmlspecialchars($me['display_name'] ?? '') ?>
     (<?= htmlspecialchars(str_replace('_', ' ', User::role())) ?>)
+    <br>Principal: <?= htmlspecialchars((string) $principal) ?>
+    &middot; Vice-Principal: <?= htmlspecialchars((string) $vice) ?>
   </p>
-
-  <h2 class="report-section-title">Class Scores &amp; Ranking</h2>
-  <table class="report-table">
-    <thead><tr>
-      <th>#</th><th>Class</th><th>Grade</th><th>Order</th><th>Clean.</th>
-      <th>Behav.</th><th>Total</th><th>Stars</th><th>Supervisor</th>
-    </tr></thead>
-    <tbody>
-      <?php if (!$ranked): ?>
-        <tr><td colspan="9">No classes.</td></tr>
-      <?php else: $rank = 1; foreach ($ranked as $r): ?>
-        <tr>
-          <td><?= $rank++ ?></td>
-          <td><?= htmlspecialchars($r['name']) ?></td>
-          <td><?= htmlspecialchars($r['grade']) ?></td>
-          <td><?= (int) $r['order_score'] ?></td>
-          <td><?= (int) $r['cleanliness_score'] ?></td>
-          <td><?= (int) $r['behavior_score'] ?></td>
-          <td><strong><?= (int) $r['total_score'] ?></strong> / 30</td>
-          <td><?= (int) $r['star_count'] ?></td>
-          <td><?= htmlspecialchars($r['supervisor_name'] ?? '' ?: '—') ?></td>
-        </tr>
-      <?php endforeach; endif; ?>
-    </tbody>
-  </table>
 
   <h2 class="report-section-title">Student Academic Performance</h2>
   <?php $academic = ClassModel::academic($db, $grades); ?>
@@ -221,6 +270,9 @@ require __DIR__ . '/includes/header.php';
     </table>
   <?php endforeach; endif; ?>
 <?php endif; ?>
+
+  <?php $renderRanking($rankedAll, $rankScopeLabel); ?>
+  <?php $renderAttendance($attendanceRows); ?>
 
 </div>
 

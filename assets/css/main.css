@@ -51,6 +51,60 @@
   --space-4: 16px;  --space-5: 24px;  --space-6: 32px;  --space-8: 48px;
 }
 
+/* ---------- Admin dark theme ----------
+   Applied via <body class="theme-admin"> for admin users so the admin
+   UI is visually distinct from the supervisor (light) UI. Only the
+   neutral palette is overridden; brand gold is kept for contrast. */
+body.theme-admin {
+  /* Brand accent -> indigo/blue (matches the reference dashboard) */
+  --color-primary:        #5D6BF8;
+  --color-primary-dark:   #4A57E0;
+  --color-primary-light:  #8A95FB;
+  --color-accent-cream:   #141A2B;
+
+  /* Neutrals -> deep navy-black surfaces, light text */
+  --color-bg:             #0B0F1A;
+  --color-surface:        #151A28;
+  --color-surface-alt:    #1B2133;
+  --color-border:         #262C40;
+  --color-text:           #EAECF5;
+  --color-text-muted:     #8B92AB;
+
+  /* Semantic */
+  --color-success:        #34D399;
+  --color-danger:         #F26D6D;
+  --color-warning:        #E8A33A;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.50);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------- Login theme (light silver + white) ----------
+   Scoped to the standalone login page via <body class="theme-login">. */
+body.theme-login {
+  --color-primary:        #2154ad;   /* silver/steel — button, logo, accents */
+  --color-primary-dark:   #6F7785;   /* hover */
+  --color-primary-light:  #C7CCD4;
+  --color-accent-cream:   #EEF0F3;   /* light silver page background */
+
+  --color-bg:             #FFFFFF;
+  --color-surface:        #FFFFFF;   /* white card */
+  --color-surface-alt:    #F4F5F7;
+  --color-border:         #D7DBE0;   /* silver border */
+  --color-text:           #2B2F36;
+  --color-text-muted:     #8A9099;
+
+  --shadow-sm: 0 1px 2px rgba(20, 24, 33, 0.05);
+  --shadow-md: 0 4px 12px rgba(20, 24, 33, 0.07);
+  --shadow-lg: 0 8px 24px rgba(20, 24, 33, 0.10);
+}
+/* Recolor the gold focus ring to silver on the login page only. */
+body.theme-login .form-control:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(138, 146, 160, 0.20);
+}
+
 /* ---------- Reset ---------- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -524,12 +578,14 @@ main { flex: 1 0 auto; padding: var(--space-6) 0 var(--space-8); }
 }
 .donut-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-4);
+  align-items: start;
 }
-@media (max-width: 992px) { .donut-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 640px) { .donut-grid { grid-template-columns: 1fr; } }
+@media (max-width: 992px) { .donut-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .donut-grid { grid-template-columns: minmax(0, 1fr); } }
 .donut-card {
+  min-width: 0;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -723,7 +779,7 @@ main { flex: 1 0 auto; padding: var(--space-6) 0 var(--space-8); }
    Settings page (admin)
    ============================================================ */
 .danger-card {
-  background: #FCEDED;
+  background: #000000;
   border-color: var(--color-danger);
 }
 .snap-list { display: flex; flex-direction: column; gap: var(--space-3); }
@@ -745,7 +801,7 @@ main { flex: 1 0 auto; padding: var(--space-6) 0 var(--space-8); }
   width: 40px; height: 40px;
   border-radius: var(--radius-pill);
   background: var(--color-primary);
-  color: #fff;
+  color: #ffffff;
   font-weight: 700;
   display: grid;
   place-items: center;

@@ -81,9 +81,8 @@ $(function () {
   $('#confirmStarBtn').on('click', function () {
     var $btn = $(this).prop('disabled', true);
     $.post('api/star_award.php', {
-      class_id:   classId,
-      awarded_by: $('#awarder').val(),
-      reason:     $.trim($('#reason').val())
+      class_id: classId,
+      reason:   $.trim($('#reason').val())
     }).done(function (res) {
       if (res && res.ok) {
         $('#starsEmpty').remove();

@@ -4,14 +4,14 @@ declare(strict_types=1);
 /**
  * Shared page shell (top). Expects (optional) before include:
  *   $pageTitle   string  - <title> + nothing visual
- *   $activeNav   string  - one of: dashboard|rankings|reports|manage|messages|settings|users
+ *   $activeNav   string  - one of: dashboard|rankings|reports|attendance|manage|settings|users
  *   $contextPill string  - right-side header badge (defaults to "Week N")
  *
  * Requires includes/db.php + includes/auth_check.php already loaded,
  * and the page to have called require_login().
  */
 
-$pageTitle   = $pageTitle   ?? 'School Dashboard';
+$pageTitle   = $pageTitle   ?? 'Smart School Dashboard';
 $activeNav   = $activeNav   ?? '';
 $contextPill = $contextPill ?? ('Week ' . ClassModel::currentWeek());
 $me          = User::current();
@@ -21,9 +21,9 @@ $isAdmin     = User::isAdmin();
 $nav = [
     'dashboard' => ['Dashboard', 'dashboard.php', 'all'],
     'rankings'  => ['Rankings',  'rankings.php',  'admin'],
-    'reports'   => ['Reports',   'report.php',    'all'],
-    'manage'    => ['Classes',   'manage.php',    'admin'],
-    'messages'  => ['Messages',  'messages.php',  'admin'],
+    'reports'    => ['Reports',    'report.php',     'all'],
+    'attendance' => ['Attendance', 'attendance.php', 'all'],
+    'manage'     => ['Classes',    'manage.php',     'admin'],
     'settings'  => ['Settings',  'settings.php',  'admin'],
     'users'     => ['Users',     'users.php',     'admin'],
 ];
@@ -33,18 +33,18 @@ $nav = [
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= htmlspecialchars($pageTitle) ?> &middot; School Dashboard</title>
+  <title><?= htmlspecialchars($pageTitle) ?> &middot; Smart School Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= htmlspecialchars(base_url('assets/css/main.css')) ?>">
 </head>
-<body>
+<body class="<?= $isAdmin ? 'theme-admin' : '' ?>">
   <header class="app-header">
     <div class="container">
       <div class="brand">
         <div class="logo" aria-hidden="true">SD</div>
         <div class="brand-text">
-          <strong>School Dashboard</strong>
+          <strong>Smart School Dashboard</strong>
           <span>Discipline &amp; Student Indicators</span>
         </div>
       </div>

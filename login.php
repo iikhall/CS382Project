@@ -14,16 +14,16 @@ if (User::isLoggedIn()) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login &middot; School Dashboard</title>
+  <title>Login &middot; Smart School Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/main.css">
 </head>
-<body>
+<body class="theme-login">
   <div class="auth-wrap">
     <div class="auth-card">
       <div class="logo" aria-hidden="true">SD</div>
-      <h1>School Dashboard</h1>
+      <h1>Smart School Dashboard</h1>
       <p class="subtle">Sign in to continue</p>
 
       <div id="loginAlert" class="auth-alert" role="alert" aria-live="assertive"></div>

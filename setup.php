@@ -43,7 +43,7 @@ foreach ($seed as $u) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Setup &middot; School Dashboard</title>
+  <title>Setup &middot; Smart School Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/main.css">
@@ -53,7 +53,7 @@ foreach ($seed as $u) {
     <div class="auth-card">
       <div class="logo" aria-hidden="true">SD</div>
       <h1>Setup Complete</h1>
-      <p class="subtle">Seed users for the School Dashboard</p>
+      <p class="subtle">Seed users for the Smart School Dashboard</p>
 
       <div class="form-group">
         <label>Created</label>

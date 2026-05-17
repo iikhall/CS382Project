@@ -1,4 +1,7 @@
-/* Report - trigger the browser print dialog (Save as PDF). */
+/* Report - when the page loaded via "Generate PDF" (?print=1, snapshot
+   already archived server-side), auto-open the print dialog. */
 $(function () {
-  $('#printBtn').on('click', function () { window.print(); });
+  if ($('#autoPrint').length) {
+    window.print();
+  }
 });

@@ -6,7 +6,7 @@ require_once __DIR__ . '/includes/auth_check.php';
 
 require_admin();
 
-$school = Stat::meta($db, '_school_name', 'School Dashboard');
+$school = Stat::meta($db, '_school_name', 'Smart School Dashboard');
 $prin   = Stat::meta($db, '_principal_name', 'Admin');
 $vice   = Stat::meta($db, '_vice_principal_name', 'Deputy');
 $snaps  = Snapshot::all($db);
@@ -52,23 +52,6 @@ require __DIR__ . '/includes/header.php';
     <span class="field-error" id="infoError"></span>
     <button type="submit" id="saveInfoBtn" class="btn btn-primary">Save Info</button>
   </form>
-</div>
-
-<!-- Save current week -->
-<div class="card mb-4">
-  <div class="section-head">
-    <span class="icon" aria-hidden="true">&#128190;</span>
-    <div>
-      <h2 class="card-title">Save Current Week</h2>
-      <p class="subtle">Freeze current scores and stars into the archive.</p>
-    </div>
-  </div>
-  <div class="form-group">
-    <label for="snapDate">Date</label>
-    <input type="date" id="snapDate" class="form-control"
-           value="<?= date('Y-m-d') ?>">
-  </div>
-  <button type="button" id="saveSnapBtn" class="btn btn-primary">Save to Archive</button>
 </div>
 
 <!-- Weekly archive -->

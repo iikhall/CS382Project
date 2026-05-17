@@ -12,7 +12,7 @@ $pageScripts = $pageScripts ?? [];
 
   <footer class="app-footer">
     <div class="container">
-      School Dashboard &mdash; CS382 Internal System &copy; <?= date('Y') ?>
+      Smart School Dashboard &mdash; CS382 Internal System &copy; <?= date('Y') ?>
     </div>
   </footer>
 

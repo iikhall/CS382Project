@@ -27,10 +27,10 @@ $courses = $canAssignTeachers ? Subject::forClass($db, $id) : [];
 
 $stars    = Star::forClass($db, $id);
 $total    = (int) $cl['order_score'] + (int) $cl['cleanliness_score'] + (int) $cl['behavior_score'];
-$awarders = [
-    'principal'      => Stat::meta($db, '_principal_name', 'Principal'),
-    'vice_principal' => Stat::meta($db, '_vice_principal_name', 'Deputy'),
-];
+$gradeSupId   = GradeSupervisor::supervisorFor($db, $cl['grade']);
+$gradeSupName = $gradeSupId !== null
+    ? ((new User($db))->findById($gradeSupId)['display_name'] ?? 'Supervisor')
+    : 'this class\'s supervisor';
 
 $pageTitle   = $cl['name'];
 $activeNav   = 'dashboard';
@@ -99,7 +99,7 @@ require __DIR__ . '/includes/header.php';
     <form id="evalForm" class="<?= $canEdit ? '' : 'is-locked' ?>">
       <?php
       $rows = [
-          ['order',       'Order',       (int) $cl['order_score']],
+          ['order',       'Discipline',  (int) $cl['order_score']],
           ['cleanliness', 'Cleanliness', (int) $cl['cleanliness_score']],
           ['behavior',    'Behavior',    (int) $cl['behavior_score']],
       ];
@@ -179,14 +179,10 @@ require __DIR__ . '/includes/header.php';
     <h3 id="starModalTitle" class="card-title mb-4">
       Award a Star to <?= htmlspecialchars($cl['name']) ?>
     </h3>
-    <div class="form-group">
-      <label for="awarder">Awarded by</label>
-      <select id="awarder" class="form-control">
-        <?php foreach ($awarders as $val => $name): ?>
-          <option value="<?= htmlspecialchars($val) ?>"><?= htmlspecialchars((string) $name) ?></option>
-        <?php endforeach; ?>
-      </select>
-    </div>
+    <p class="subtle">
+      Awarded by the class supervisor:
+      <strong><?= htmlspecialchars((string) $gradeSupName) ?></strong>
+    </p>
     <div class="form-group">
       <label for="reason">Reason (optional)</label>
       <input type="text" id="reason" class="form-control" maxlength="255"

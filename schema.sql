@@ -146,7 +146,6 @@ CREATE TABLE `stats` (
 
 INSERT INTO `stats` (`stat_key`,`value`,`label`,`sublabel`) VALUES
   ('positive_behaviors','2329','Recorded Positive Behaviors','Positive behavior rate 100% - Semester 1'),
-  ('parent_visits',     '452', 'Guardian Visits via Noor System','Total visits recorded for the academic year'),
   ('attendance_rate',   '87%', 'Disciplined Attendance Rate','Average monthly attendance across the year'),
   -- reserved system meta (hidden from dashboard cards by the `_` prefix)
   ('_last_reset_week',  '0',   'system','last Sunday-based week the scores were auto-reset'),
@@ -155,7 +154,7 @@ INSERT INTO `stats` (`stat_key`,`value`,`label`,`sublabel`) VALUES
   ('_vice_principal_name','Deputy','system','placeholder vice-principal name');
 
 -- ------------------------------------------------------------
--- 6) attendance_monthly  (12 Hijri months, English transliteration)
+-- 6) attendance_monthly  (12 Gregorian months, January–December)
 -- ------------------------------------------------------------
 CREATE TABLE `attendance_monthly` (
   `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -167,18 +166,18 @@ CREATE TABLE `attendance_monthly` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `attendance_monthly` (`month`,`value`,`sort_order`) VALUES
-  ('Muharram',        0, 1),
-  ('Safar',           0, 2),
-  ('Rabi al-Awwal',  91, 3),
-  ('Rabi al-Thani',  88, 4),
-  ('Jumada al-Awwal',93, 5),
-  ('Jumada al-Thani',76, 6),
-  ('Rajab',          82, 7),
-  ('Shaban',         89, 8),
-  ('Ramadan',        88, 9),
-  ('Shawwal',        90,10),
-  ('Dhu al-Qadah',    0,11),
-  ('Dhu al-Hijjah',   0,12);
+  ('January',   0, 1),
+  ('February',  0, 2),
+  ('March',    91, 3),
+  ('April',    88, 4),
+  ('May',      93, 5),
+  ('June',     76, 6),
+  ('July',     82, 7),
+  ('August',   89, 8),
+  ('September',88, 9),
+  ('October',  90,10),
+  ('November',  0,11),
+  ('December',  0,12);
 
 -- ------------------------------------------------------------
 -- 7) feedback_ratings  (internal staff platform rating 1-5)

@@ -1,8 +1,8 @@
-# School Dashboard — User & Logic Guide (CS382)
+# Smart School Dashboard — User & Logic Guide (CS382)
 
 An internal school-management web app that merges **discipline tracking** and
 **student-indicators analytics** into one system. PHP (OOP + PDO) + MySQL,
-jQuery + AJAX, session auth, Chart.js. English-only, left-to-right.
+jQuery + AJAX, session auth, Chart.js.
 
 ---
 
@@ -103,10 +103,15 @@ assets/js/           →  app.js (shared toast) + one script per page
 
 ### Snapshots
 
-`settings.php` → "Save to Archive" calls `Snapshot::save()`, which builds a
-**denormalized JSON copy** of every class (scores + its stars) and stores it
-in `week_snapshots.classes_json`. Editing classes later does not change past
-snapshots. Snapshots can be viewed, downloaded as JSON, or deleted.
+A snapshot is a **denormalized JSON copy** of every class (scores + its
+stars) in `week_snapshots.classes_json`, so editing classes later does
+not change past records. The manual *Save Current Week* action was
+removed; instead a snapshot is **auto-saved server-side whenever an
+admin or supervisor generates a report PDF**. *Generate PDF* navigates
+to `report.php?print=1`, which calls `Snapshot::save()` in PHP before
+the page auto-opens the print dialog (no AJAX, so it can't be missed).
+`settings.php` → **Weekly Archive** (admin) lists every snapshot —
+**View** (JSON modal), **Download** (JSON file), or **Delete**.
 
 ---
 
@@ -115,14 +120,13 @@ snapshots. Snapshots can be viewed, downloaded as JSON, or deleted.
 Two roles only:
 
 - **Admin** — system/IT owner. Full technical & administrative control:
-  users, classes, courses, settings, messages, rankings, any PDF. Assigns
-  one supervisor per grade. Not expected to evaluate daily, but *can*.
+  users, classes, courses, settings, rankings, any PDF. Assigns one
+  supervisor per grade. Not expected to evaluate daily, but *can*.
 - **Supervisor** — assigned by the admin to a **whole grade** (e.g.
   Grade 1 = classes 1-A…1-D). Within that grade only: views the
   dashboard, evaluates classes (scores/notes + stars), sets the
-  **teacher name** on each course, and generates a PDF report of the
-  grade. No access to other grades, users, settings, messages, or the
-  school-wide rankings.
+  **teacher name** on each course, and generates a PDF report. No
+  access to other grades, users, settings, or the school-wide rankings.
 
 **Teachers are not system users** — a course's teacher is just a name
 the supervisor (or admin) types on the course. Teachers cannot log in.
@@ -138,13 +142,13 @@ the supervisor (or admin) types on the course. Teachers cannot log in.
 | Dashboard + charts                           |   ✅ (own grade)       |  ✅ (all) |
 | Open & **evaluate** a class + award stars    |   ✅ (own grade)       |  ✅ (any) |
 | Set **teacher name** on a course             |   ✅ (own grade)       |  ✅ (any) |
+| Edit **monthly attendance rate**             |   ✅                   |  ✅   |
 | Export **PDF report**                        |   ✅ (own grade)       |  ✅ (school / any class) |
 | View **Rankings** (school-wide, confidential)|   ❌                   |  ✅   |
 | Add / delete **classes**                     |   ❌                   |  ✅   |
 | Add / edit / delete **courses**              |   ❌                   |  ✅   |
 | **Assign supervisor** to a grade             |   ❌                   |  ✅   |
-| **Messages** (read / clear)                  |   ❌                   |  ✅   |
-| **Settings** (school info, snapshots, reset) |   ❌                   |  ✅   |
+| **Settings** (school info, archive, reset)   |   ❌                   |  ✅   |
 | **Users** (create / edit / delete accounts)  |   ❌                   |  ✅   |
 
 Enforcement is server-side, not just hidden nav: `require_admin()` and
@@ -162,11 +166,15 @@ Wrong credentials show an inline red error without reloading; success
 redirects to the dashboard.
 
 ### Dashboard (`dashboard.php`) — all roles (scoped)
-- **3 stat cards** — headline indicators, colored accent border.
+- **Stat cards** — computed live, scoped to the viewer:
+  *Recorded Positive Behaviors* = sum of all in-scope class evaluations
+  (admin = every class; supervisor = their grade only);
+  *Disciplined Attendance Rate* = average of the months that have data.
+  (`ClassModel::totalEvaluationPoints`, `Attendance::averageRate`.)
 - **Class grid** — admin sees all 12 classes grouped by grade; a
   **supervisor sees only their assigned grade's classes** (an
   empty-state message if no grade assigned). Each card → class detail.
-- **Attendance chart** — green area line over 12 Hijri months; no-data
+- **Attendance chart** — green area line over 12 calendar months; no-data
   months render as a gap with an em-dash (`—`).
 - **Academic donuts** — per course; supervisors see only their grade.
 - Charts fetched via AJAX from `api/dashboard_data.php` (also scoped).
@@ -176,8 +184,9 @@ redirects to the dashboard.
 - A **supervisor** can only open a class in a grade they supervise
   (other IDs → redirected). Admin can open any class.
 - **Motivational Stars (left)** — admin or the grade's supervisor can
-  **Award Star**.
-- **Weekly Evaluation (right)** — sliders for Order / Cleanliness /
+  **Award Star**. Every star is attributed to the **class's grade
+  supervisor** (no awarder dropdown); only an optional reason is entered.
+- **Weekly Evaluation (right)** — sliders for Discipline / Cleanliness /
   Behavior with live `/30` total, leader, supervisor label, notes,
   **Save Changes**. Persists via `api/class_update.php`, re-authorized
   by `ClassModel::canEvaluate()`.
@@ -195,11 +204,27 @@ and are redirected.
 ### Reports (`report.php`) — admin & supervisor
 Printable report; **Generate PDF** opens the browser print dialog
 (“Save as PDF” — no server-side PDF library needed).
-- No `?id` → **admin: school-wide report** (all classes ranked);
-  **supervisor: their grade report** (only their grade's classes).
+- No `?id` → **admin: school-wide** academic section;
+  **supervisor: their grade's** academic section.
 - `?id=N` → **single-class report**: discipline scores, grade
   supervisor, courses (with teacher names), stars log. A supervisor may
   only open a class inside their grade.
+- **Every report also includes** a **Class Scores & Ranking** table —
+  **scoped to the viewer**: admin sees *(All Classes)*, a supervisor
+  sees only their assigned grade(s) — plus the school-wide
+  **Disciplined Attendance Rate (Academic Year)** table.
+- The **School Report** shortcut on a single-class report shows for
+  **admin only** (supervisors just use **Generate PDF**).
+- **Generate PDF** opens `report.php?print=1`, which **saves a snapshot
+  to the Weekly Archive server-side** (visible to the admin in Settings)
+  and then auto-opens the print dialog.
+
+### Attendance (`attendance.php`) — admin & supervisor
+Both roles may edit the **monthly attendance rate**. A table of all 12
+months with a number input (0–100; `0` = no data / chart gap). Save
+posts to `api/attendance_save.php` (`Attendance::updateValues`, clamped
+0–100). These values feed the dashboard attendance chart and the
+**Disciplined Attendance Rate** table in every report.
 
 ### Classes (`manage.php`) — admin only
 - **Grade Supervisors** (top card) — one row per grade with a
@@ -210,17 +235,12 @@ Printable report; **Generate PDF** opens the browser print dialog
 - **Add / Edit / Delete Course** — per class: name, **teacher name**
   (free text) and the grade-band distribution driving the donuts.
 
-### Messages (`messages.php`) — admin only
-Read any stored contact message with a colored category tag, recipient,
-timestamp, and sender, plus rating summary cards. **Clear All Messages**
-(with a confirmation modal) wipes them.
-
 ### Settings (`settings.php`) — admin only
 - **School Information** — edit school / principal / vice-principal names
-  (these feed the Award-Star dropdown and branding).
-- **Save Current Week** — pick a date and archive a snapshot.
-- **Weekly Archive** — list of saved weeks; each row has **View**
-  (JSON modal), **Download** (JSON file), **Delete**. **Clear All** wipes
+  (used for branding/report headers).
+- **Weekly Archive** — auto-populated: a snapshot is recorded every time
+  any admin/supervisor generates a report PDF. Each row has **View**
+  (JSON modal), **Download** (JSON file), **Delete**; **Clear All** wipes
   the archive.
 - **Start New Week** (red danger card) — **Reset Current Week Data** zeros
   all scores and clears all stars immediately (archive untouched), behind a
@@ -228,7 +248,7 @@ timestamp, and sender, plus rating summary cards. **Clear All Messages**
 
 ### Users (`users.php`) — admin only
 Table of all accounts. **Add User** opens a modal (username, display name,
-role = admin / vice_principal / teacher, password ≥ 6 chars). **Edit**
+role = admin / supervisor, password ≥ 6 chars). **Edit**
 reuses the modal (username locked; leave password blank to keep it).
 **Delete** asks for confirmation. Safety guards (enforced server-side):
 - You cannot delete your own account.
@@ -246,7 +266,7 @@ Ends the session and returns to the login screen.
 - Platform ratings are **1–5**.
 - Contact messages are **≤ 10 words**, with allow-listed recipients and
   categories — enforced in the browser, in PHP, and by MySQL `CHECK`s.
-- Attendance uses the **12 Hijri months** (English transliterations);
+- Attendance uses the **12 Gregorian months** (January–December);
   value `0` means "no data" and renders as a gap.
 - The week boundary is **Sunday-based**; a new week auto-resets scores/stars.
 - Snapshots are a **denormalized JSON copy**, so history never changes.
@@ -257,21 +277,24 @@ Ends the session and returns to the login screen.
 ## 6. Quick role demo script
 
 **As `admin` / `Admin@123`:**
-1. Log in → full nav (Dashboard, Rankings, Reports, Classes, Messages,
-   Settings, Users).
+1. Log in → full nav (Dashboard, Rankings, Reports, Classes, Settings,
+   Users).
 2. Classes → **Grade Supervisors** card → set **Grade 1 → Supervisor
    One** → Save.
 3. Open a Grade 1 class → in **Courses & Teachers**, type a teacher
    name on a course → Save. (Also editable via the Classes course modal.)
-4. Open any class → drag sliders (live `/30`) → Save → "Saved ✓".
-5. Reports → Generate PDF (school-wide), then a class's **PDF Report**.
+4. Open any class → drag sliders (live `/30`) → Save → "Saved ✓";
+   Award Star (attributed to the grade supervisor automatically).
+5. Reports → Generate PDF — confirm it includes the **All-Classes
+   ranking** and the **Attendance** table.
 
 **As `super1` / `Super@123` (Supervisor):**
-1. Log in → nav shows Dashboard, Reports, Logout only.
+1. Log in → nav shows Dashboard, Reports, Attendance, Logout only.
 2. Dashboard shows **only Grade 1** classes (the grade admin assigned).
 3. Open a Grade 1 class → evaluate it (sliders + Save), award a star,
    and set a course's teacher name in **Courses & Teachers**.
-4. Reports → Generate PDF → it's the **Grade 1** report only.
+4. Reports → only **Generate PDF** (no School Report link); the PDF is
+   the Grade 1 academic section + the all-classes ranking + attendance.
 5. Try a class URL from another grade, or `rankings.php` /
    `settings.php` / `users.php` → bounced away.
 
@@ -279,13 +302,13 @@ Ends the session and returns to the login screen.
 
 ## 7. Notes
 
-- The **Feedback** page was removed. **Messages** remains for admins to
-  review/clear messages already stored; no new ones are created.
+- The **Feedback** and **Messages** pages were removed entirely
+  (no message/rating capture in the system anymore).
 - **PDF export** uses the browser's print-to-PDF (this environment has no
   PHP PDF library/composer); the report pages have dedicated print CSS.
 - **Deferred** (not yet built — listed in the role brief, flagged for a
   later round): a 4th *Participation* score, teacher attendance/absence
   recording, subject-grade entry by teachers, a weekly-report approval
   workflow, audit logs, and data archiving. The 3-score model
-  (Order / Cleanliness / Behavior) is unchanged.
+  (Discipline / Cleanliness / Behavior) is unchanged.
 - All other listed pages are complete and functional.

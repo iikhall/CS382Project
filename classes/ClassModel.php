@@ -127,6 +127,23 @@ final class ClassModel
     }
 
     /**
+     * Sum of all discipline evaluations (order + cleanliness + behavior)
+     * across the in-scope classes. $grades null = every class (admin);
+     * a list = only that supervisor's grade(s).
+     */
+    public static function totalEvaluationPoints(Database $db, ?array $grades = null): int
+    {
+        [$where, $params] = self::gradeFilter($grades);
+        $row = $db->query(
+            'SELECT COALESCE(SUM(c.order_score + c.cleanliness_score
+                    + c.behavior_score), 0) AS pts
+             FROM classes c WHERE 1 = 1' . $where,
+            $params
+        )->fetch();
+        return (int) $row['pts'];
+    }
+
+    /**
      * May the logged-in user edit/evaluate this class?
      * Admin → any class. Supervisor → only classes in a grade
      * the admin assigned to them.

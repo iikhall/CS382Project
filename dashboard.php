@@ -22,6 +22,13 @@ if (User::isAdmin()) {
 $cards   = Stat::cards($db);
 $byGrade = ClassModel::allGroupedByGrade($db, $grades);
 
+// Live values (scoped to the viewer): positive behaviors = total of all
+// in-scope class evaluations; attendance = average of months with data.
+$liveStat = [
+    'positive_behaviors' => (string) ClassModel::totalEvaluationPoints($db, $grades),
+    'attendance_rate'    => Attendance::averageRate($db) . '%',
+];
+
 $pageTitle   = 'Dashboard';
 $activeNav   = 'dashboard';
 $pageScripts = [
@@ -56,7 +63,7 @@ require __DIR__ . '/includes/header.php';
   <?php foreach ($cards as $i => $c): ?>
     <div class="stat-card card is-hoverable" data-accent="<?= $i % 3 ?>">
       <div class="stat-card-icon" aria-hidden="true">&#9733;</div>
-      <div class="stat-card-value"><?= htmlspecialchars($c['value']) ?></div>
+      <div class="stat-card-value"><?= htmlspecialchars($liveStat[$c['stat_key']] ?? $c['value']) ?></div>
       <div class="stat-card-label"><?= htmlspecialchars($c['label']) ?></div>
       <div class="stat-card-sub"><?= htmlspecialchars($c['sublabel']) ?></div>
     </div>
@@ -86,7 +93,7 @@ require __DIR__ . '/includes/header.php';
             <span class="score-ring-max">/30</span>
           </div>
           <ul class="score-rows">
-            <li><span>Order</span><strong><?= (int) $cl['order_score'] ?> / 10</strong></li>
+            <li><span>Discipline</span><strong><?= (int) $cl['order_score'] ?> / 10</strong></li>
             <li><span>Cleanliness</span><strong><?= (int) $cl['cleanliness_score'] ?> / 10</strong></li>
             <li><span>Behavior</span><strong><?= (int) $cl['behavior_score'] ?> / 10</strong></li>
           </ul>

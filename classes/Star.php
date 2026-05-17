@@ -6,8 +6,6 @@ declare(strict_types=1);
  */
 final class Star
 {
-    public const AWARDERS = ['principal', 'vice_principal'];
-
     /** Stars for one class, newest first. */
     public static function forClass(Database $db, int $classId): array
     {
@@ -27,7 +25,7 @@ final class Star
         return (int) $row['n'];
     }
 
-    /** Insert a star. $awardedBy must be one of self::AWARDERS. */
+    /** Insert a star (awarded by the class's grade supervisor). */
     public static function award(
         Database $db,
         int $classId,
